@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowRight, LockKeyhole, LogOut, RefreshCw, Star } from "lucide-react";
-import type { Dashboard, RankedCostume } from "@/lib/admin-types";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, LockKeyhole, LogOut, RefreshCw } from "lucide-react";
+import type { Dashboard } from "@/lib/admin-types";
+import { OwnerPodium } from "./owner-podium";
 
 class PortalError extends Error { constructor(public status: number, message: string) { super(message); } }
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -11,11 +13,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!response.ok) throw new PortalError(response.status, body.error || "No pudimos completar la operación.");
   return body;
 }
-function imageUrl(entry: RankedCostume) {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/costumes/${entry.photoPath.split("/").map(encodeURIComponent).join("/")}`;
-}
-
-export function OwnerPortal() {
+export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" }) {
+  const showPodium = view === "podium";
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [password, setPassword] = useState("");
@@ -100,23 +99,26 @@ export function OwnerPortal() {
         </form>
         {error && <p className="error-message" role="alert">{error}</p>}
       </section> : <>
-        <div className="owner-title-row"><div><span className="owner-eyebrow">SIDEQUEST · HALLOWEEN PARTY</span><h1>PORTAL DE <span className="red">NACHO.</span></h1></div>
+        {showPodium && <Link href="/nacho" className="text-button owner-back"><ArrowLeft size={16} /> Volver al portal</Link>}
+        <div className="owner-title-row"><div><span className="owner-eyebrow">SIDEQUEST · HALLOWEEN PARTY</span><h1>{showPodium ? <>EL <span className="red">PODIO.</span></> : <>PORTAL DE <span className="red">NACHO.</span></>}</h1></div>
           <button className="text-button owner-refresh" onClick={() => void refresh()} disabled={busy || refreshing}><RefreshCw size={16} className={refreshing ? "spin" : ""} /> Actualizar</button>
         </div>
-        <section className="owner-control" aria-labelledby="owner-voting-heading">
+        {!showPodium && <section className="owner-control" aria-labelledby="owner-voting-heading">
           <div><span className={`owner-status ${dashboard.votingEnabled ? "is-open" : ""}`}>{dashboard.votingEnabled ? "ABIERTA" : "CERRADA"}</span><h2 id="owner-voting-heading">VOTACIÓN</h2><p>{dashboard.votingEnabled ? "Los invitados pueden repartir estrellas." : "Se pueden subir fotos. Los votos están bloqueados."}</p></div>
-          <button className={`button ${dashboard.votingEnabled ? "button-outline" : "button-red"}`} onClick={() => void toggleVoting()} disabled={busy} aria-busy={busy}>{busy ? "Guardando…" : dashboard.votingEnabled ? "Cerrar votación" : "Habilitar votación"}</button>
-        </section>
+          <button type="button" role="switch" aria-checked={dashboard.votingEnabled} aria-label="Habilitar votación" className="owner-voting-toggle" onClick={() => void toggleVoting()} disabled={busy} aria-busy={busy}>
+            <span className="owner-toggle-label" aria-hidden="true">{busy ? "Guardando…" : "Habilitar votación"}</span>
+            <span className="owner-switch-track" aria-hidden="true"><span className="owner-switch-thumb" /></span>
+          </button>
+        </section>}
         {error && <p className="error-message" role="alert">{error}</p>}
-        <p className="owner-notice" role="status">{notice}</p>
+        {!showPodium && <><p className="owner-notice" role="status">{notice}</p>
         <div className="owner-stats" aria-label="Totales del concurso"><div><strong>{dashboard.participants}</strong><span>Disfraces</span></div><div><strong>{dashboard.votes}</strong><span>Votos</span></div><div><strong>{dashboard.totalStars}</strong><span>Estrellas</span></div></div>
-        <section className="owner-results" aria-labelledby="podium-heading"><div className="owner-section-heading"><h2 id="podium-heading">EL <span className="red">PODIO.</span></h2><span>{dashboard.votingEnabled ? "Resultados en vivo · provisorios" : "Resultados actuales"}</span></div>
-          {!dashboard.ranking.some((entry) => entry.place !== null) ? <div className="owner-empty">El podio aparece con los primeros votos.</div> : <div className="owner-podium">{[1, 2, 3].map((place) => <div key={place} className={`podium-place place-${place}`}><span className="podium-number">{place}<small>°</small></span>{dashboard.ranking.filter((entry) => entry.place === place).map((entry) => <article key={entry.id} className="podium-card"><img src={imageUrl(entry)} alt={`Disfraz de ${entry.name}`} /><div><h3>{entry.name}</h3><strong><Star size={15} fill="currentColor" /> {entry.totalStars} estrellas</strong><span>{entry.votes} {entry.votes === 1 ? "voto" : "votos"}</span></div></article>)}{!dashboard.ranking.some((entry) => entry.place === place) && <p className="podium-pending">Sin votos todavía</p>}</div>)}</div>}
-          <p className="owner-ranking-rule">Por total de estrellas. Los empates comparten puesto.</p>
+        <section className="owner-control owner-podium-access" aria-labelledby="owner-podium-access-heading">
+          <div><h2 id="owner-podium-access-heading">PODIO</h2><p>Los disfraces más votados.</p></div>
+          <Link href="/nacho/podio" className="button button-red owner-podium-link">Acceder al podio <ArrowRight size={18} /></Link>
         </section>
-        <section className="owner-ranking" aria-labelledby="ranking-heading"><h2 id="ranking-heading">TODOS LOS DISFRACES</h2>
-          {dashboard.ranking.length === 0 ? <p className="owner-empty">Todavía no se subieron fotos.</p> : <div className="owner-table-wrap"><table><thead><tr><th scope="col">Puesto</th><th scope="col">Participante</th><th scope="col">Votos</th><th scope="col">Estrellas</th></tr></thead><tbody>{dashboard.ranking.map((entry) => <tr key={entry.id}><td>{entry.place === null ? "—" : `${entry.place}°`}</td><th scope="row"><img src={imageUrl(entry)} alt="" width={40} height={48} />{entry.name}</th><td>{entry.votes}</td><td><strong>{entry.totalStars}</strong></td></tr>)}</tbody></table></div>}
-        </section>
+        </>}
+        {showPodium && <OwnerPodium dashboard={dashboard} />}
         <p className="owner-updated">Actualizado {updatedAt} · Actualización automática cada 15 s.</p>
       </>}
     </main>

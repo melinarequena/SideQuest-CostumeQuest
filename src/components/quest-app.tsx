@@ -185,9 +185,9 @@ export function QuestApp() {
           <h1 className="home-title">COSTUME <span className="red">QUEST.</span></h1>
           <div className="home-actions">
             <button className="button button-red home-cta" onClick={() => setStage("upload")}>Subir foto</button>
-            <button className="button button-outline home-cta" disabled={!statusReady || !votingEnabled} aria-describedby={!votingEnabled ? "home-voting-status" : undefined} onClick={() => setQuestion(true)}>Ir a votar</button>
+            <button className="button button-outline home-cta" disabled={!statusReady || !votingEnabled} aria-describedby={!statusReady ? "home-voting-status" : undefined} onClick={() => setQuestion(true)}>Ir a votar</button>
           </div>
-          {!votingEnabled && <p className="voting-closed-hint" id="home-voting-status" role="status">{statusReady ? "La votación todavía no está habilitada." : "Comprobando votación…"}</p>}
+          {!statusReady && <p className="voting-closed-hint" id="home-voting-status" role="status">Comprobando votación…</p>}
           </div>
         </section>}
 
@@ -202,7 +202,6 @@ export function QuestApp() {
               <button className="button button-red" disabled={busy || !votingEnabled} onClick={() => void startVoting()}>
                 {busy && <LoaderCircle className="spin" size={18} />} Seguir votando <ArrowRight size={17} />
               </button>
-              {!votingEnabled && <p className="voting-closed-hint" role="status">La votación todavía no está habilitada.</p>}
             </div> : error ? <div className="empty-state">
               <h2>No pudimos conectar.</h2><p>{error}</p>
               <button className="button button-outline" onClick={() => setRetry((n) => n + 1)}>Reintentar</button>
@@ -234,7 +233,6 @@ export function QuestApp() {
           <button className="button button-red thanks-cta" disabled={busy || !votingEnabled} onClick={() => void startVoting()}>
             {busy ? <LoaderCircle size={18} className="spin" /> : <RotateCcw size={17} />} Volver a votar
           </button>
-          {!votingEnabled && <p className="voting-closed-hint" role="status">La votación todavía no está habilitada.</p>}
           <button className="text-button" onClick={() => setStage("home")}>Volver al inicio</button>
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>}

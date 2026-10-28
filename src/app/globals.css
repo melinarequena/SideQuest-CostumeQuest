@@ -426,10 +426,21 @@ html:has(.is-upload), body:has(.is-upload) { height: 100%; overflow: hidden; ove
 .owner-login .button { width: 100%; justify-content: space-between; margin-top: 18px; }
 .owner-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 48px 0 30px; }
 .owner-title-row h1 { font-size: clamp(35px, 4.5vw, 64px); }
+.owner-back { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; }
+.owner-back + .owner-title-row { margin-top: 18px; }
+.owner-podium-access { margin-top: 28px; }
+.owner-podium-access h2 { margin-top: 0; }
+.owner-podium-link { flex-shrink: 0; min-width: 225px; gap: 14px; }
+.owner-podium-link > svg:last-child { margin-left: auto; }
 .owner-control { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 26px; border: 1px solid var(--line); border-radius: 5px; }
 .owner-control h2 { font: 32px/1.2 var(--display); letter-spacing: .5px; margin-top: 9px; }
 .owner-control p { color: var(--muted); margin-top: 5px; font-size: 13px; }
-.owner-control > .button { flex-shrink: 0; min-width: 225px; }
+.owner-voting-toggle { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; flex-shrink: 0; min-height: 44px; padding: 6px 0; border: 0; background: transparent; }
+.owner-toggle-label { font: 20px/1.2 var(--display); text-transform: uppercase; letter-spacing: .5px; }
+.owner-switch-track { position: relative; display: block; flex-shrink: 0; width: 60px; height: 34px; border: 1px solid #5d5858; border-radius: 999px; background: #393536; transition: background-color .2s, border-color .2s; }
+.owner-switch-thumb { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--cream); transition: transform .2s; }
+.owner-voting-toggle[aria-checked="true"] .owner-switch-track { background: var(--red); border-color: var(--red); }
+.owner-voting-toggle[aria-checked="true"] .owner-switch-thumb { transform: translateX(26px); }
 .owner-status { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
 .owner-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
 .owner-status.is-open { color: var(--red); }
@@ -477,6 +488,7 @@ html:has(.is-upload), body:has(.is-upload) { height: 100%; overflow: hidden; ove
   .owner-header .brand > span { font-size: 17px; }
   .owner-title-row { margin: 32px 0 24px; align-items: flex-start; flex-direction: column; gap: 12px; }
   .owner-control { flex-direction: column; align-items: stretch; padding: 20px; gap: 20px; }
+  .owner-podium-link { width: 100%; }
   .owner-stats { gap: 12px; }
   .owner-stats strong { font-size: 36px; }
   .owner-section-heading { flex-direction: column; gap: 10px; }
