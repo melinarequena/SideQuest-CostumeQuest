@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, LoaderCircle, QrCode, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
 import { UploadForm } from "./upload-form";
+import { UploadTransition, ZITRA_TRANSITION_IMAGE } from "./upload-transition";
 import { Voting } from "./voting";
 import { ShareDialog } from "./share-dialog";
 import { VoteQuestion } from "./vote-question";
@@ -23,11 +24,28 @@ export function QuestApp() {
   const [error, setError] = useState("");
   const [share, setShare] = useState(false);
   const [question, setQuestion] = useState(false);
+  const [uploadCover, setUploadCover] = useState<"covering" | "leaving" | null>(null);
   const [voteProblem, setVoteProblem] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const [retry, setRetry] = useState(0);
   const transition = useRef(false);
   const main = useRef<HTMLElement>(null);
+  const uploadEntered = useRef<(() => void) | null>(null);
+  const restoreFocus = useRef(false);
+
+  useEffect(() => {
+    if (stage === "upload") {
+      const image = new Image();
+      image.src = ZITRA_TRANSITION_IMAGE;
+    }
+  }, [stage]);
+
+  useEffect(() => {
+    if (!uploadCover && restoreFocus.current) {
+      restoreFocus.current = false;
+      main.current?.focus({ preventScroll: true });
+    }
+  }, [uploadCover]);
 
   useEffect(() => {
     let active = true;
@@ -57,7 +75,10 @@ export function QuestApp() {
     } finally { transition.current = false; setBusy(false); }
   }
   async function upload(name: string, costume: string, photo: Blob) {
-    setBusy(true); setError(""); setVoteProblem(null);
+    if (transition.current) return;
+    transition.current = true;
+    const entered = new Promise<void>((resolve) => { uploadEntered.current = resolve; });
+    setBusy(true); setError(""); setVoteProblem(null); setUploadCover("covering");
     try {
       let result: Participation;
       try { result = demoMode ? await demoUpload(name, costume, photo) : await submitParticipant(name, costume, photo); }
@@ -67,11 +88,28 @@ export function QuestApp() {
         if (!restored?.participant) throw err;
         result = restored.participant;
       }
-      setParticipant(result);
-      setHasPhotos(true);
-      try { setEntries(demoMode ? demoCostumes() : await fetchCostumes()); setStage("voting"); }
-      catch { setError("Tu foto ya está guardada. No pudimos cargar la votación; tocá ‘Seguir votando’ para reintentar."); }
-    } finally { setBusy(false); }
+      let pending: Costume[] | null = null;
+      try { pending = demoMode ? demoCostumes() : await fetchCostumes(); }
+      catch { /* Keep the saved photo and offer the existing retry action. */ }
+      // A fast upload still shows the approach; a slow upload holds Zitra until ready.
+      await entered;
+      setParticipant(result); setHasPhotos(true);
+      if (pending !== null) { setEntries(pending); setBusy(false); setStage("voting"); }
+      else {
+        setError("Tu foto ya está guardada. No pudimos cargar la votación; tocá ‘Seguir votando’ para reintentar.");
+        setUploadCover("leaving");
+      }
+    } catch (err) {
+      uploadEntered.current = null;
+      setUploadCover(null); setBusy(false); transition.current = false;
+      throw err;
+    }
+  }
+
+  function finishUploadTransition() {
+    restoreFocus.current = true;
+    uploadEntered.current = null;
+    setUploadCover(null); setBusy(false); transition.current = false;
   }
   async function vote(id: string, stars: number) {
     if (demoMode) demoVote(id); else await submitVote(id, stars);
@@ -85,16 +123,19 @@ export function QuestApp() {
       {demoMode && <div className="demo-banner">Demo · Fotos y votos guardados solo en este navegador.</div>}
 
       <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0, behavior: "instant" })}>
-        <motion.div key={stage} className="screen-frame"
+        <motion.div key={stage} className="screen-frame" inert={Boolean(uploadCover)} aria-busy={Boolean(uploadCover)}
           variants={{
             enter: { opacity: 0, y: reduceMotion ? 0 : 22 },
             visible: { opacity: 1, y: 0 },
             leave: { opacity: 0, y: reduceMotion ? 0 : -16 },
           }}
           initial="enter" animate="visible" exit="leave"
-          transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reduceMotion || uploadCover ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
           onAnimationComplete={(definition) => {
-            if (definition === "visible") main.current?.focus({ preventScroll: true });
+            if (definition === "visible") {
+              if (stage === "voting" && uploadCover === "covering") setUploadCover("leaving");
+              else if (!uploadCover) main.current?.focus({ preventScroll: true });
+            }
           }}>
       {stage !== "home" && <header className="site-header">
         <a className="brand" href="/" aria-label="Side Quest - Costume Quest, inicio">
@@ -123,10 +164,6 @@ export function QuestApp() {
 
         {stage === "upload" && <section className="upload-screen" aria-label="Inscripción al concurso">
           <div className="upload-heading"><button className="text-button" onClick={() => setStage("home")}>Volver</button><h1>SUBÍ TU FOTO<span className="red">.</span></h1></div>
-          <div className="horror-poster">
-            <img src="/brand/sidequest-halloween-hero.png" alt="Ambientación de SideQuest Halloween: personajes de terror y colores neón" />
-            <span className="poster-sticker">DULCE <i>O TOKEN</i></span>
-          </div>
           <div className="quest-panel">
             {!ready ? <div className="loading-state" role="status">
               <LoaderCircle className="spin" size={24} /><p>Cargando…</p>
@@ -172,6 +209,11 @@ export function QuestApp() {
 
       {stage !== "home" && <footer className="site-footer"><span>SideQuest - La anti Hackaton</span><span>Halloween Party</span></footer>}
         </motion.div>
+      </AnimatePresence>
+      <AnimatePresence>
+        {uploadCover && <UploadTransition leaving={uploadCover === "leaving"}
+          onEntered={() => { uploadEntered.current?.(); uploadEntered.current = null; }}
+          onFinished={finishUploadTransition} />}
       </AnimatePresence>
       {share && <ShareDialog onClose={() => setShare(false)} />}
       {question && <VoteQuestion
