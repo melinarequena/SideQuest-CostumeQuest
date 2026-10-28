@@ -9,7 +9,7 @@ import { Voting } from "./voting";
 import { ShareDialog } from "./share-dialog";
 import { VoteQuestion } from "./vote-question";
 import { configured, demoMode } from "@/lib/supabase";
-import { fetchCostumes, fetchState, submitParticipant, submitVote } from "@/lib/api";
+import { fetchCostumes, fetchState, fetchVotingStatus, submitParticipant, submitVote } from "@/lib/api";
 import { demoCostumes, demoState, demoUpload, demoVote } from "@/lib/demo";
 import type { Costume, Participation, Stage } from "@/lib/types";
 
@@ -26,12 +26,30 @@ export function QuestApp() {
   const [question, setQuestion] = useState(false);
   const [uploadCover, setUploadCover] = useState<"covering" | "leaving" | null>(null);
   const [voteProblem, setVoteProblem] = useState<string | null>(null);
+  const [votingEnabled, setVotingEnabled] = useState(demoMode);
+  const [statusReady, setStatusReady] = useState(demoMode);
   const reduceMotion = useReducedMotion();
   const [retry, setRetry] = useState(0);
   const transition = useRef(false);
   const main = useRef<HTMLElement>(null);
   const uploadEntered = useRef<(() => void) | null>(null);
   const restoreFocus = useRef(false);
+
+  useEffect(() => {
+    if (demoMode) return;
+    let active = true;
+    const update = () => {
+      if (document.hidden) return;
+      void fetchVotingStatus().then((enabled) => { if (active) setVotingEnabled(enabled); })
+        .catch(() => { if (active) setVotingEnabled(false); })
+        .finally(() => { if (active) setStatusReady(true); });
+    };
+    update();
+    const timer = window.setInterval(update, 10000);
+    window.addEventListener("focus", update);
+    document.addEventListener("visibilitychange", update);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("focus", update); document.removeEventListener("visibilitychange", update); };
+  }, []);
 
   useEffect(() => {
     if (stage === "upload") {
@@ -63,6 +81,9 @@ export function QuestApp() {
     transition.current = true;
     setBusy(true); setError(""); setVoteProblem(null); setEntries([]); setStage("voting");
     try {
+      const enabled = demoMode || await fetchVotingStatus();
+      setVotingEnabled(enabled); setStatusReady(true);
+      if (!enabled) return;
       const state = demoMode ? demoState() : await fetchState();
       setParticipant(state.participant); setVotes(state.votes);
       const pending = demoMode ? demoCostumes() : await fetchCostumes();
@@ -88,13 +109,16 @@ export function QuestApp() {
         if (!restored?.participant) throw err;
         result = restored.participant;
       }
+      const enabled = demoMode || await fetchVotingStatus().catch(() => false);
+      setVotingEnabled(enabled); setStatusReady(true);
       let pending: Costume[] | null = null;
-      try { pending = demoMode ? demoCostumes() : await fetchCostumes(); }
+      try { if (enabled) pending = demoMode ? demoCostumes() : await fetchCostumes(); }
       catch { /* Keep the saved photo and offer the existing retry action. */ }
       // A fast upload still shows the approach; a slow upload holds Zitra until ready.
       await entered;
       setParticipant(result); setHasPhotos(true);
-      if (pending !== null) { setEntries(pending); setBusy(false); setStage("voting"); }
+      if (!enabled) { setEntries([]); setBusy(false); setStage("thanks"); }
+      else if (pending !== null) { setEntries(pending); setBusy(false); setStage("voting"); }
       else {
         setError("Tu foto ya está guardada. No pudimos cargar la votación; tocá ‘Seguir votando’ para reintentar.");
         setUploadCover("leaving");
@@ -112,7 +136,11 @@ export function QuestApp() {
     setUploadCover(null); setBusy(false); transition.current = false;
   }
   async function vote(id: string, stars: number) {
-    if (demoMode) demoVote(id); else await submitVote(id, stars);
+    try { if (demoMode) demoVote(id); else await submitVote(id, stars); }
+    catch (err) {
+      if (!demoMode) setVotingEnabled(await fetchVotingStatus().catch(() => false));
+      throw err;
+    }
     setVotes((number) => number + 1);
   }
 
@@ -133,7 +161,7 @@ export function QuestApp() {
           transition={{ duration: reduceMotion || uploadCover ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
           onAnimationComplete={(definition) => {
             if (definition === "visible") {
-              if (stage === "voting" && uploadCover === "covering") setUploadCover("leaving");
+              if ((stage === "voting" || stage === "thanks") && uploadCover === "covering") setUploadCover("leaving");
               else if (!uploadCover) main.current?.focus({ preventScroll: true });
             }
           }}>
@@ -157,8 +185,9 @@ export function QuestApp() {
           <h1 className="home-title">COSTUME <span className="red">QUEST.</span></h1>
           <div className="home-actions">
             <button className="button button-red home-cta" onClick={() => setStage("upload")}>Subir foto</button>
-            <button className="button button-outline home-cta" onClick={() => setQuestion(true)}>Ir a votar</button>
+            <button className="button button-outline home-cta" disabled={!statusReady || !votingEnabled} aria-describedby={!votingEnabled ? "home-voting-status" : undefined} onClick={() => setQuestion(true)}>Ir a votar</button>
           </div>
+          {!votingEnabled && <p className="voting-closed-hint" id="home-voting-status" role="status">{statusReady ? "La votación todavía no está habilitada." : "Comprobando votación…"}</p>}
           </div>
         </section>}
 
@@ -170,9 +199,10 @@ export function QuestApp() {
             </div> : participant ? <div className="welcome-back">
               <h2>YA ESTÁS PARTICIPANDO<span className="red">.</span></h2>
               <img className="own-photo" src={participant.photoUrl} alt={`Tu disfraz${participant.costume ? `: ${participant.costume}` : ""}`} />
-              <button className="button button-red" disabled={busy} onClick={() => void startVoting()}>
+              <button className="button button-red" disabled={busy || !votingEnabled} onClick={() => void startVoting()}>
                 {busy && <LoaderCircle className="spin" size={18} />} Seguir votando <ArrowRight size={17} />
               </button>
+              {!votingEnabled && <p className="voting-closed-hint" role="status">La votación todavía no está habilitada.</p>}
             </div> : error ? <div className="empty-state">
               <h2>No pudimos conectar.</h2><p>{error}</p>
               <button className="button button-outline" onClick={() => setRetry((n) => n + 1)}>Reintentar</button>
@@ -182,11 +212,12 @@ export function QuestApp() {
         </section>}
 
         {stage === "voting" && <section className="vote-layout" aria-label="Votación de disfraces">
-          {(busy || voteProblem || hasPhotos) && <div className="vote-intro">
+          {votingEnabled && (busy || voteProblem || hasPhotos) && <div className="vote-intro">
             <h1>VOTÁ TUS <span className="red">FAVORITOS.</span></h1>
             <p>Deslizá para omitir.</p>
           </div>}
-          {busy ? <div className="loading-state" role="status"><LoaderCircle className="spin" size={25} /><p>Cargando disfraces…</p></div>
+          {!votingEnabled ? <div className="empty-state"><h2>VOTACIÓN CERRADA<span className="red">.</span></h2><p>Podés subir tu foto mientras esperás.</p><button className="button button-red" onClick={() => setStage(participant ? "home" : "upload")}>{participant ? "Volver al inicio" : "Subir foto"}</button></div>
+            : busy ? <div className="loading-state" role="status"><LoaderCircle className="spin" size={25} /><p>Cargando disfraces…</p></div>
             : voteProblem ? <div className="empty-state vote-problem">
               <h2>NO PUDIMOS CARGAR.</h2>
               <p role="alert">{voteProblem}</p>
@@ -200,9 +231,11 @@ export function QuestApp() {
         {stage === "thanks" && <section className="thanks-section">
           <h1>¡GRACIAS<span className="red">!</span></h1>
           <p className="thanks-description">{participant ? `Gracias por subir tu foto${votes > 0 ? " y por votar" : ""}.` : votes > 0 ? "Gracias por votar." : "Gracias por participar."}</p>
-          <button className="button button-red thanks-cta" disabled={busy} onClick={() => void startVoting()}>
+          <button className="button button-red thanks-cta" disabled={busy || !votingEnabled} onClick={() => void startVoting()}>
             {busy ? <LoaderCircle size={18} className="spin" /> : <RotateCcw size={17} />} Volver a votar
           </button>
+          {!votingEnabled && <p className="voting-closed-hint" role="status">La votación todavía no está habilitada.</p>}
+          <button className="text-button" onClick={() => setStage("home")}>Volver al inicio</button>
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>}
       </main>

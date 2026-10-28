@@ -410,6 +410,89 @@ html:has(.is-upload), body:has(.is-upload) { height: 100%; overflow: hidden; ove
 .upload-transition-figure > img[hidden] { display: none; }
 .upload-transition-fallback { display: block; margin: auto; color: var(--red); }
 
+.voting-closed-hint { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 12px; text-align: center; }
+.thanks-section > .text-button { margin-top: 16px; }
+.owner-shell { min-height: 100dvh; padding: 0 32px 40px; background: #000; }
+.owner-header { max-width: 1100px; margin: auto; padding: 22px 0; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #292727; }
+.owner-header > svg { color: var(--muted); }
+.owner-header .text-button, .owner-refresh { display: inline-flex; align-items: center; gap: 8px; }
+.owner-main { max-width: 1100px; margin: auto; }
+.owner-loading { padding-top: 25dvh; text-align: center; color: var(--muted); }
+.owner-login { width: min(100%, 390px); margin: max(55px, 16dvh) auto 40px; }
+.owner-eyebrow { display: block; font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
+.owner-login h1 { font-size: clamp(62px, 8vw, 88px); }
+.owner-login form { margin-top: 28px; }
+.owner-login input { min-height: 50px; font-size: 16px; }
+.owner-login .button { width: 100%; justify-content: space-between; margin-top: 18px; }
+.owner-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 48px 0 30px; }
+.owner-title-row h1 { font-size: clamp(35px, 4.5vw, 64px); }
+.owner-control { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 26px; border: 1px solid var(--line); border-radius: 5px; }
+.owner-control h2 { font: 32px/1.2 var(--display); letter-spacing: .5px; margin-top: 9px; }
+.owner-control p { color: var(--muted); margin-top: 5px; font-size: 13px; }
+.owner-control > .button { flex-shrink: 0; min-width: 225px; }
+.owner-status { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.owner-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.owner-status.is-open { color: var(--red); }
+.owner-status.is-open::before { background: var(--red); }
+.owner-notice { color: var(--muted); font-size: 12px; min-height: 20px; margin: 10px 0; }
+.owner-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 15px 0 30px; gap: 20px; border-bottom: 1px solid #292727; }
+.owner-stats > div { display: flex; flex-direction: column; gap: 2px; }
+.owner-stats strong { font: 44px/1.2 var(--display); font-weight: 400; }
+.owner-stats span { color: var(--muted); font-size: 12px; }
+.owner-results { margin-top: 40px; }
+.owner-section-heading { display: flex; justify-content: space-between; gap: 15px; align-items: baseline; margin-bottom: 24px; }
+.owner-section-heading h2 { font: 40px/1 var(--display); }
+.owner-section-heading > span { font-size: 12px; color: var(--muted); }
+.owner-empty { padding: 30px 0; color: var(--muted); }
+.owner-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.podium-place { min-width: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+.podium-place.place-1 { border-color: var(--red); }
+.podium-number { display: block; font: 48px/1 var(--display); margin-bottom: 14px; }
+.place-1 > .podium-number { color: var(--red); }
+.podium-number small { font-size: 25px; }
+.podium-card + .podium-card { margin-top: 22px; }
+.podium-card > img { width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #151414; display: block; border-radius: 3px; }
+.podium-card > div { display: flex; flex-direction: column; gap: 5px; padding-top: 12px; }
+.podium-card h3 { font: 26px/1.2 var(--display); overflow-wrap: anywhere; }
+.podium-card strong { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.podium-card span, .podium-pending { font-size: 12px; color: var(--muted); }
+.owner-ranking-rule { font-size: 11px; color: var(--muted); margin-top: 20px; }
+.owner-ranking { margin-top: 40px; }
+.owner-ranking h2 { font: 25px/1.2 var(--display); letter-spacing: .3px; margin-bottom: 18px; }
+.owner-table-wrap { overflow-x: auto; }
+.owner-ranking table { width: 100%; border-collapse: collapse; text-align: left; font-variant-numeric: tabular-nums; }
+.owner-ranking thead { font-size: 11px; color: var(--muted); }
+.owner-ranking thead th { font-weight: 400; }
+.owner-ranking th, .owner-ranking td { padding: 12px 10px; border-bottom: 1px solid #292727; }
+.owner-ranking tbody th { display: flex; align-items: center; gap: 12px; font-weight: 400; overflow-wrap: anywhere; }
+.owner-ranking tbody img { flex-shrink: 0; object-fit: cover; border-radius: 3px; background: #151414; }
+.owner-ranking td:first-child { color: var(--muted); }
+.owner-ranking td:last-child { color: var(--red); }
+.owner-ranking th:first-child, .owner-ranking td:first-child { padding-left: 0; }
+.owner-updated { margin-top: 25px; font-size: 11px; color: var(--muted); }
+@media (max-width: 700px) {
+  .owner-shell { padding: env(safe-area-inset-top) 20px 30px; }
+  .owner-header { padding: 16px 0; }
+  .owner-header .brand { gap: 10px; }
+  .owner-header .brand > span { font-size: 17px; }
+  .owner-title-row { margin: 32px 0 24px; align-items: flex-start; flex-direction: column; gap: 12px; }
+  .owner-control { flex-direction: column; align-items: stretch; padding: 20px; gap: 20px; }
+  .owner-stats { gap: 12px; }
+  .owner-stats strong { font-size: 36px; }
+  .owner-section-heading { flex-direction: column; gap: 10px; }
+  .owner-podium { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .podium-place { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 16px; }
+  .podium-number { grid-column: 1; grid-row: 1 / 20; font-size: 38px; }
+  .podium-card, .podium-pending { grid-column: 2; }
+  .podium-card { display: flex; align-items: center; gap: 15px; }
+  .podium-card > img { width: 90px; height: 110px; aspect-ratio: auto; flex-shrink: 0; }
+  .podium-card > div { padding-top: 0; min-width: 0; }
+  .podium-card h3 { font-size: 23px; }
+  .owner-ranking tbody th { gap: 8px; font-size: 12px; }
+  .owner-ranking th, .owner-ranking td { padding: 10px 6px; }
+  .owner-ranking tbody img { width: 28px; height: 36px; }
+}
+
 @media (min-width: 801px) and (min-height: 501px) {
   .is-upload .stage-upload { width: min(760px, calc(100% - 80px)); }
   .is-upload .upload-heading h1 { align-self: center; width: max-content; font-size: clamp(84px, min(8vw, 14dvh), 112px); text-align: center; white-space: nowrap; }

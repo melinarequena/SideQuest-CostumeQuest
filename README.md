@@ -28,7 +28,7 @@ La configuración inicial permite una **demo explícita** (`NEXT_PUBLIC_DEMO_MOD
 
 1. Crear un proyecto de Supabase.
 2. En **Authentication → Sign In / Providers**, habilitar **Anonymous Sign-Ins**.
-3. Ejecutar las migraciones de `supabase/migrations/` en orden, una sola vez cada una: primero `202610270001_costume_quest.sql` y después `202610270002_allow_voting_without_photo.sql`. También se pueden aplicar con Supabase CLI. Si ya aplicaste la primera, ejecutar solamente la segunda. Crean las tablas, funciones, políticas, el bucket y permiten votar sin foto.
+3. Ejecutar las migraciones de `supabase/migrations/` en orden, una sola vez cada una. La tercera, `202610280001_owner_portal.sql`, agrega el portal privado y deja la votación cerrada por defecto. En un proyecto existente aplicar únicamente las migraciones pendientes.
 4. Copiar la URL del proyecto y su **publishable key** (o la antigua clave pública `anon`) a `.env.local`:
 
 ```dotenv
@@ -40,7 +40,7 @@ NEXT_PUBLIC_SITE_URL=https://TU-DOMINIO
 
 5. Reiniciar el servidor. Las variables `NEXT_PUBLIC_*` se incorporan en el build; volver a compilar si cambian en producción.
 
-No usar una clave `service_role` ni una clave secreta como publishable key. La aplicación no las necesita. Los errores de conexión reales se muestran como errores; no se convierten en votos de demo.
+No usar una clave `service_role` ni una clave secreta como publishable key. La aplicación no las necesita, tampoco para el portal. Los errores de conexión reales se muestran como errores; no se convierten en votos de demo.
 
 ## Publicar y obtener el QR
 
@@ -65,7 +65,27 @@ No usar una clave `service_role` ni una clave secreta como publishable key. La a
 
 ## Resultados para organización
 
-Ejecutar `supabase/results.sql` desde el SQL Editor. Muestra promedio, cantidad de votos y total de estrellas. La interfaz pública no muestra un ranking que pueda influir en el voto. La consulta ordena por promedio y después cantidad de votos; la organización debe definir el criterio de premiación y cualquier mínimo de votos.
+Abrir `/nacho`. El formulario solo pide contraseña y el portal no tiene un enlace desde la app pública. La autorización se comprueba en el servidor y en cada función de base de datos; conocer la dirección no da acceso.
+
+Configuración única:
+
+1. En Supabase → Authentication → Users → Add user → Create new user, crear la cuenta de Nacho con correo y contraseña y confirmar el correo desde la creación administrativa. No se envía una invitación desde la app.
+2. Configurar `QUEST_ADMIN_EMAIL` en el servidor/Vercel, sin prefijo `NEXT_PUBLIC_`. El correo no se solicita en el formulario ni se incorpora al JavaScript del navegador.
+3. Desde SQL Editor, otorgar el permiso a esa cuenta (sustituir el correo):
+
+```sql
+insert into public.quest_admins(user_id)
+select id from auth.users where lower(email) = lower('CORREO_DE_NACHO') and not is_anonymous
+on conflict do nothing;
+```
+
+La contraseña se guarda en Supabase Auth, no en el código ni en variables públicas. La sesión administrativa usa cookies HttpOnly y Secure en producción, separadas de la sesión anónima de los invitados; el portal permite cerrar sesión. Los endpoints de escritura verifican el origen. Supabase aplica sus límites de intentos de acceso.
+
+Nacho puede habilitar o cerrar la votación sin borrar votos. Las inscripciones siguen abiertas. La base de datos bloquea votos cerrados incluso desde tarjetas antiguas o peticiones directas. Los invitados actualizan el estado cada 10 segundos y al volver a la pestaña; un intento de votar después del cierre se rechaza inmediatamente en la base.
+
+El podio ordena por **total de estrellas acumuladas**. Los empates comparten puesto y los participantes sin votos no aparecen como ganadores. Los resultados son provisorios mientras la votación está abierta. El portal muestra todos los disfraces, cantidad de votos y estrellas, y actualiza cada 15 segundos. No se publican resultados ni votos individuales en la app de invitados.
+
+También se puede ejecutar `supabase/results.sql` desde SQL Editor; ordena por total de estrellas.
 
 ## Límites y operación
 
@@ -73,7 +93,7 @@ Ejecutar `supabase/results.sql` desde el SQL Editor. Muestra promedio, cantidad 
 - Las fotos se guardan en un bucket público para mostrarlas en las tarjetas. Quien conozca una URL de foto puede abrirla. Los votos individuales solo pueden ser leídos por su emisor y por la administración de Supabase.
 - Hay validación de formato, tamaño, permisos y puntuaciones. No hay moderación automática de contenido ni mecanismo de eliminación desde la interfaz. La organización puede retirar participaciones en Supabase. Tras la fiesta, eliminar archivos y usuarios anónimos según la retención que defina la organización; borrar una fila no borra automáticamente su archivo de Storage.
 - Configurar los límites de solicitudes de Supabase Auth según la asistencia. Activar CAPTCHA requiere integrar su desafío en la app; no habilitarlo sin esa integración.
-- No hay cuenta de Supabase/Vercel provisionada ni despliegue realizado por el código. Hace falta configurar el proyecto real para uso compartido.
+- El código no provisiona cuentas de Supabase/Vercel. Hace falta configurar el proyecto real y la cuenta administrativa para uso compartido. La demo local conserva la votación abierta y no concede acceso al portal.
 
 ## Verificación
 

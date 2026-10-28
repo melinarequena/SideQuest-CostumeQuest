@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const parsed = voteSchema.safeParse(await request.json());
     if (!parsed.success) throw new HttpError(400, "Elegí entre 1 y 5 estrellas.");
     const { error } = await client.rpc("cast_vote", { p_participant_id: parsed.data.participantId, p_stars: parsed.data.stars });
-    if (error) throw new HttpError(400, "No pudimos registrar ese voto. Recargá e intentá de nuevo.");
+    if (error) throw new HttpError(error.code === "55000" ? 423 : 400, error.code === "55000" ? "La votación está cerrada." : "No pudimos registrar ese voto. Recargá e intentá de nuevo.");
     return NextResponse.json({ ok: true });
   } catch (error) { return errorResponse(error); }
 }

@@ -6,4 +6,4 @@ select p.name, p.costume,
 from public.participants p
 left join public.votes v on v.participant_id = p.id
 group by p.id
-order by promedio_estrellas desc nulls last, cantidad_votos desc, p.created_at;
+order by total_estrellas desc, p.created_at;

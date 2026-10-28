@@ -1,6 +1,12 @@
 import { getAccessToken, getSupabase, photoUrl } from "./supabase";
 import type { Costume, Participation, QuestState } from "./types";
 
+export async function fetchVotingStatus(): Promise<boolean> {
+  const response = await fetch("/api/event", { cache: "no-store" });
+  if (!response.ok) throw new Error("No pudimos comprobar si la votación está habilitada.");
+  return (await response.json()).votingEnabled === true;
+}
+
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getAccessToken();
   const response = await fetch(`/api/${path}`, {
