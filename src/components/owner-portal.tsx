@@ -137,11 +137,11 @@ export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" | 
         </section>}
         {error && <p className="error-message" role="alert">{error}</p>}
         {showPortal && <><p className="owner-notice" role="status">{notice}</p>
-        <OwnerStats dashboard={dashboard} />
         <section className="owner-control owner-podium-access" aria-labelledby="owner-podium-access-heading">
           <div><h2 id="owner-podium-access-heading">PODIO</h2><p>Los disfraces más votados.</p></div>
           <Link href="/nacho/podio" className="button button-red owner-podium-link">Acceder al podio <ArrowRight size={18} /></Link>
         </section>
+        <OwnerStats dashboard={dashboard} />
         </>}
         {showPodium && <section className="podium-lobby" aria-label="Estadísticas y presentación del podio">
           <OwnerStats dashboard={dashboard} animated />

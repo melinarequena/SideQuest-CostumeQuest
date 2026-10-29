@@ -429,6 +429,7 @@ html:has(.is-upload), body:has(.is-upload) { height: 100%; overflow: hidden; ove
 .owner-back { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; }
 .owner-back + .owner-title-row { margin-top: 18px; }
 .owner-podium-access { margin-top: 28px; }
+.owner-podium-access + .owner-stats { margin-top: 28px; }
 .owner-podium-access h2 { margin-top: 0; }
 .owner-podium-link { flex-shrink: 0; min-width: 225px; gap: 14px; }
 .owner-podium-link > svg:last-child { margin-left: auto; }
@@ -446,8 +447,9 @@ html:has(.is-upload), body:has(.is-upload) { height: 100%; overflow: hidden; ove
 .owner-status.is-open { color: var(--red); }
 .owner-status.is-open::before { background: var(--red); }
 .owner-notice { color: var(--muted); font-size: 12px; min-height: 20px; margin: 10px 0; }
+.owner-notice:empty { min-height: 0; margin: 0; }
 .owner-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 15px 0 30px; gap: 20px; border-bottom: 1px solid #292727; }
-.owner-stats > div { display: flex; flex-direction: column; gap: 2px; }
+.owner-stats > div { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
 .owner-stats strong { font: 44px/1.2 var(--display); font-weight: 400; }
 .owner-stats span { color: var(--muted); font-size: 12px; }
 .owner-results { margin-top: 40px; }
@@ -481,6 +483,11 @@ html:has(.is-upload), body:has(.is-upload) { height: 100%; overflow: hidden; ove
 .owner-ranking td:last-child { color: var(--red); }
 .owner-ranking th:first-child, .owner-ranking td:first-child { padding-left: 0; }
 .owner-updated { margin-top: 25px; font-size: 11px; color: var(--muted); }
+.owner-authenticated:not(.owner-results-screen) { display: flex; flex-direction: column; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.owner-authenticated:not(.owner-results-screen) > .owner-header { width: 100%; margin: 0 auto; flex-shrink: 0; }
+.owner-authenticated:not(.owner-results-screen) > .owner-main { width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column; }
+.owner-authenticated:not(.owner-results-screen) .owner-back { align-self: flex-start; }
+.owner-authenticated:not(.owner-results-screen) .owner-updated { margin-top: auto; padding-top: 25px; }
 
 /* Private, silent ceremony: the lobby keeps winners hidden until the reveal. */
 .podium-lobby { padding: 20px 0 40px; }
