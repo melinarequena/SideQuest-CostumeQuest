@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, LockKeyhole, LogOut, RefreshCw } from "lucide-react";
 import type { Dashboard } from "@/lib/admin-types";
-import { OwnerPodium } from "./owner-podium";
+import { OwnerResults } from "./owner-results";
+import { OwnerStats } from "./owner-stats";
+import { useOwnerPresentation } from "./owner-presentation-context";
+import { podiumGroups } from "@/lib/podium";
 
 class PortalError extends Error { constructor(public status: number, message: string) { super(message); } }
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -13,8 +17,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!response.ok) throw new PortalError(response.status, body.error || "No pudimos completar la operación.");
   return body;
 }
-export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" }) {
+export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" | "results" }) {
+  const showPortal = view === "portal";
   const showPodium = view === "podium";
+  const showResults = view === "results";
+  const router = useRouter();
+  const { snapshot, snapshotId, capture, clear } = useOwnerPresentation();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [password, setPassword] = useState("");
@@ -38,10 +46,10 @@ export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" })
     } catch (err) {
       if (current !== version.current) return;
       if (err instanceof PortalError && (err.status === 401 || err.status === 403)) {
-        setDashboard(null); if (!initial) setError("Tu sesión terminó. Volvé a ingresar.");
+        setDashboard(null); clear(); if (!initial) setError("Tu sesión terminó. Volvé a ingresar.");
       } else setError(err instanceof Error ? err.message : "No pudimos actualizar los resultados.");
     } finally { if (current === version.current) { setInitializing(false); setRefreshing(false); } }
-  }, []);
+  }, [clear]);
 
   useEffect(() => { void refresh(true); return () => { version.current++; }; }, [refresh]);
   useEffect(() => {
@@ -79,12 +87,27 @@ export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" })
     mutating.current = true; setBusy(true); setError(""); version.current++;
     try {
       await request("logout", { method: "POST", body: "{}" });
-      setDashboard(null); setPassword(""); setNotice(""); setRefreshing(false);
+      setDashboard(null); clear(); setPassword(""); setNotice(""); setRefreshing(false);
     } catch { setError("No pudimos cerrar la sesión. Intentá de nuevo."); }
     finally { mutating.current = false; setBusy(false); }
   }
 
-  return <div className={`owner-shell ${dashboard ? "owner-authenticated" : ""}`}>
+  async function startPresentation() {
+    if (mutating.current) return;
+    mutating.current = true; setBusy(true); setError(""); version.current++;
+    try {
+      const results = await request<Dashboard>("dashboard");
+      setDashboard(results);
+      if (!podiumGroups(results.ranking).length) throw new Error("Todavía no hay votos para revelar.");
+      capture(results);
+      router.push("/nacho/podio/resultados");
+    } catch (err) {
+      if (err instanceof PortalError && (err.status === 401 || err.status === 403)) { setDashboard(null); clear(); }
+      setError(err instanceof Error ? err.message : "No pudimos preparar los resultados.");
+    } finally { mutating.current = false; setBusy(false); setRefreshing(false); }
+  }
+
+  return <div className={`owner-shell ${dashboard ? "owner-authenticated" : ""} ${showResults && dashboard ? "owner-results-screen" : ""}`}>
     <header className="owner-header">
       <a className="brand" href="/" aria-label="Ir al inicio de Costume Quest"><img src="/brand/sidequest-logo.png" alt="SideQuest" width={54} height={40} /><span>Costume Quest</span></a>
       {dashboard ? <button className="text-button" onClick={() => void logout()} disabled={busy}><LogOut size={16} /> Salir</button> : <LockKeyhole size={18} aria-label="Acceso privado" />}
@@ -100,10 +123,12 @@ export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" })
         {error && <p className="error-message" role="alert">{error}</p>}
       </section> : <>
         {showPodium && <Link href="/nacho" className="text-button owner-back"><ArrowLeft size={16} /> Volver al portal</Link>}
+        {!showResults && <>
         <div className="owner-title-row"><div><span className="owner-eyebrow">SIDEQUEST · HALLOWEEN PARTY</span><h1>{showPodium ? <>EL <span className="red">PODIO.</span></> : <>PORTAL DE <span className="red">NACHO.</span></>}</h1></div>
           <button className="text-button owner-refresh" onClick={() => void refresh()} disabled={busy || refreshing}><RefreshCw size={16} className={refreshing ? "spin" : ""} /> Actualizar</button>
         </div>
-        {!showPodium && <section className="owner-control" aria-labelledby="owner-voting-heading">
+        </>}
+        {showPortal && <section className="owner-control" aria-labelledby="owner-voting-heading">
           <div><span className={`owner-status ${dashboard.votingEnabled ? "is-open" : ""}`}>{dashboard.votingEnabled ? "ABIERTA" : "CERRADA"}</span><h2 id="owner-voting-heading">VOTACIÓN</h2><p>{dashboard.votingEnabled ? "Los invitados pueden repartir estrellas." : "Se pueden subir fotos. Los votos están bloqueados."}</p></div>
           <button type="button" role="switch" aria-checked={dashboard.votingEnabled} aria-label="Habilitar votación" className="owner-voting-toggle" onClick={() => void toggleVoting()} disabled={busy} aria-busy={busy}>
             <span className="owner-toggle-label" aria-hidden="true">{busy ? "Guardando…" : "Habilitar votación"}</span>
@@ -111,15 +136,23 @@ export function OwnerPortal({ view = "portal" }: { view?: "portal" | "podium" })
           </button>
         </section>}
         {error && <p className="error-message" role="alert">{error}</p>}
-        {!showPodium && <><p className="owner-notice" role="status">{notice}</p>
-        <div className="owner-stats" aria-label="Totales del concurso"><div><strong>{dashboard.participants}</strong><span>Disfraces</span></div><div><strong>{dashboard.votes}</strong><span>Votos</span></div><div><strong>{dashboard.totalStars}</strong><span>Estrellas</span></div></div>
+        {showPortal && <><p className="owner-notice" role="status">{notice}</p>
+        <OwnerStats dashboard={dashboard} />
         <section className="owner-control owner-podium-access" aria-labelledby="owner-podium-access-heading">
           <div><h2 id="owner-podium-access-heading">PODIO</h2><p>Los disfraces más votados.</p></div>
           <Link href="/nacho/podio" className="button button-red owner-podium-link">Acceder al podio <ArrowRight size={18} /></Link>
         </section>
         </>}
-        {showPodium && <OwnerPodium dashboard={dashboard} />}
-        <p className="owner-updated">Actualizado {updatedAt} · Actualización automática cada 15 s.</p>
+        {showPodium && <section className="podium-lobby" aria-label="Estadísticas y presentación del podio">
+          <OwnerStats dashboard={dashboard} animated />
+          <div className="podium-launch">
+            <button className="button button-red" onClick={() => void startPresentation()} disabled={busy || refreshing || !podiumGroups(dashboard.ranking).length} aria-busy={busy}>{busy ? "Preparando…" : "Ver resultados"}<ArrowRight size={18} /></button>
+            {!podiumGroups(dashboard.ranking).length && <p>Todavía no hay votos para revelar.</p>}
+            {dashboard.votingEnabled && <p>La votación sigue abierta. Resultados provisorios.</p>}
+          </div>
+        </section>}
+        {showResults && <OwnerResults key={snapshotId} dashboard={snapshot ?? dashboard} />}
+        {!showResults && <p className="owner-updated">Actualizado {updatedAt} · Actualización automática cada 15 s.</p>}
       </>}
     </main>
   </div>;

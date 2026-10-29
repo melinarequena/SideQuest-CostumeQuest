@@ -83,7 +83,11 @@ La contraseña se guarda en Supabase Auth, no en el código ni en variables púb
 
 Nacho puede habilitar o cerrar la votación sin borrar votos. Las inscripciones siguen abiertas. La base de datos bloquea votos cerrados incluso desde tarjetas antiguas o peticiones directas. Los invitados actualizan el estado cada 10 segundos y al volver a la pestaña; un intento de votar después del cierre se rechaza inmediatamente en la base.
 
-El podio ordena por **total de estrellas acumuladas**. Los empates comparten puesto y los participantes sin votos no aparecen como ganadores. Los resultados son provisorios mientras la votación está abierta. El portal muestra todos los disfraces, cantidad de votos y estrellas, y actualiza cada 15 segundos. No se publican resultados ni votos individuales en la app de invitados.
+El podio ordena por **total de estrellas acumuladas**. Los empates comparten puesto y los participantes sin votos no aparecen como ganadores. Los resultados son provisorios mientras la votación está abierta. En `/nacho/podio` se muestran los totales de disfraces, votos y estrellas, con actualización cada 15 segundos. No se publican resultados ni votos individuales en la app de invitados.
+
+**Ver resultados** toma los puntajes de ese momento y abre `/nacho/podio/resultados`. La presentación es visual, sin sonido: revela el tercer puesto después de una breve pausa de suspenso y espera un clic para pasar al segundo, y otro para el primero, con confeti rojo y blanco. Cada ganador queda visible el tiempo que necesite la organización. Al final se puede abrir el podio completo, repetir la misma presentación o volver al portal. Si faltan puestos se omiten, y se muestran todos los ganadores empatados.
+
+La presentación conserva los resultados capturados en memoria de esa pestaña, sin guardarlos en la URL ni en almacenamiento persistente. Un voto nuevo no cambia un ganador a mitad de la ceremonia. El acceso administrativo se vuelve a verificar al entrar y se borra la captura al cerrar sesión. Con movimiento reducido se muestra directamente el podio estático, sin pulsos ni confeti.
 
 También se puede ejecutar `supabase/results.sql` desde SQL Editor; ordena por total de estrellas.
 
