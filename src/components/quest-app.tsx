@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, LoaderCircle, QrCode, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, LoaderCircle, QrCode, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
 import { UploadForm } from "./upload-form";
 import { UploadTransition, ZITRA_TRANSITION_IMAGE } from "./upload-transition";
@@ -233,7 +233,7 @@ export function QuestApp() {
           <button className="button button-red thanks-cta" disabled={busy || !votingEnabled} onClick={() => void startVoting()}>
             {busy ? <LoaderCircle size={18} className="spin" /> : <RotateCcw size={17} />} Volver a votar
           </button>
-          <button className="text-button" onClick={() => setStage("home")}>Volver al inicio</button>
+          <button className="text-button" onClick={() => setStage("home")}><ArrowLeft size={15} aria-hidden="true" /> Volver al inicio</button>
           {error && <p className="error-message" role="alert">{error}</p>}
         </section>}
       </main>
