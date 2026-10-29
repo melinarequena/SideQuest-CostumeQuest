@@ -92,10 +92,9 @@ export function OwnerResults({ dashboard }: { dashboard: Dashboard }) {
       </motion.div>}
     </AnimatePresence>
     {!finished && previousWinners.length > 0 && <aside className="reveal-history" aria-label="Puestos ya revelados">
-      <span className="reveal-history-title">YA REVELADOS</span>
       <div className="reveal-history-entries">{previousWinners.map((group) => group.entries.map((entry) => <motion.article key={entry.id} className="reveal-history-card" initial={{ opacity: 0, x: reduceMotion ? 0 : 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .35 }}>
         <RevealPhoto entry={entry} />
-        <div className="reveal-history-info"><span className="reveal-history-place">{group.place}° <span>{group.entries.length > 1 ? "· Empate" : "puesto"}</span></span><h2>{entry.name}</h2><strong><Star size={12} fill="currentColor" /> {entry.totalStars} <span>estrellas</span></strong></div>
+        <div className="reveal-history-info"><span className="reveal-history-place">{group.place}° <span>{group.entries.length > 1 ? "· Empate" : "puesto"}</span></span><h2 title={entry.name}>{entry.name}</h2><strong><Star size={12} fill="currentColor" /> {entry.totalStars} <span>estrellas</span></strong></div>
       </motion.article>))}</div>
     </aside>}
     </div>
