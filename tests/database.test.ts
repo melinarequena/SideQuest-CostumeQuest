@@ -131,10 +131,10 @@ test("database enforces participation, ownership, storage and voting rules", asy
       await db.query("select public.set_voting_enabled(true)");
       await asUser(outsider); await db.query("select public.cast_vote($1,4)", [bobEntry]);
     });
-    await suite.test("ranking uses total stars, shares tied places, and never declares zero-vote winners", async () => {
+    await suite.test("ranking uses total stars, assigns unique tied places, and never declares zero-vote winners", async () => {
       await asUser(admin);
       const result = await db.query<{ quest_dashboard: { ranking: { totalStars: number; place: number | null }[] } }>("select public.quest_dashboard()");
-      assert.deepEqual(result.rows[0].quest_dashboard.ranking.map((entry) => [entry.totalStars, entry.place]), [[8, 1], [8, 1], [0, null]]);
+      assert.deepEqual(result.rows[0].quest_dashboard.ranking.map((entry) => [entry.totalStars, entry.place]), [[8, 1], [8, 2], [0, null]]);
       await db.exec("reset role");
       await db.query("delete from public.quest_admins where user_id=$1", [admin]);
       await asUser(admin);
